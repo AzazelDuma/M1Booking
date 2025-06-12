@@ -1,0 +1,10 @@
+return {
+  variation_id: inputData.variation_id,
+  name: inputData.name,
+  price: inputData.price,
+  currency: inputData.currency,
+  service_duration_ms: inputData.service_duration_ms,
+  available_for_booking: inputData.available_for_booking,
+  no_show_fee: inputData.no_show_fee,
+  transition_time_ms: inputData.transition_time_ms
+};

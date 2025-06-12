@@ -1,0 +1,16 @@
+{
+  "query": {
+    "filter": {
+      "start_at_range": {
+        "start_at": "{{302803174__start_at}}",
+        "end_at": "{{302803174__end_at}}"
+      },
+      "location_id": "XMSN9FVF2XRGQ",
+      "segment_filters": [
+        {
+          "service_variation_id": "{{302796674__variation_id}}"
+        }
+      ]
+    }
+  }
+}

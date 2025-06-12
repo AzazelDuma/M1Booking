@@ -1,0 +1,8 @@
+return {
+  customerId: inputData.customer_id,
+  startAt: inputData.start_at,
+  serviceVariationId: inputData.service_variation_id,
+  serviceVariationVersion: inputData.service_variation_version,
+  teamMemberId: inputData.team_member_id,
+  location: inputData.location
+};

@@ -1,0 +1,170 @@
+const transcript = inputData.transcript || "";
+const lowerTranscript = transcript.toLowerCase();
+
+// === Alaska Time Setup ===
+const now = new Date();
+const alaskaOffsetMs = 9 * 60 * 60 * 1000;
+const alaskaNow = new Date(now.getTime() - alaskaOffsetMs);
+
+// === Full Name Extraction ===
+let full_name = null;
+const blockedNames = ["leo", "pettit", "mya"];
+const fallbackMatch = transcript.match(/(?:my name is|this is|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/i);
+if (fallbackMatch) {
+  const rawName = fallbackMatch[1].trim();
+  const parts = rawName.toLowerCase().split(" ");
+  if (!parts.some(name => blockedNames.includes(name))) {
+    full_name = rawName;
+  }
+}
+
+// === Phone Number Extraction ===
+let phone = null;
+const phoneMatch = transcript.match(/(\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/);
+if (phoneMatch) {
+  phone = phoneMatch[1].replace(/[^\d]/g, '').replace(/^1/, '');
+  if (phone.length === 10) phone = phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+}
+
+// === Email Extraction ===
+let email = null;
+const emailMatch = transcript.match(/[\w.+-]+@[\w-]+\.[\w.-]+/i);
+if (emailMatch) {
+  email = emailMatch[0].trim();
+}
+
+// === Service Name Extraction ===
+let service_name = null;
+const durationMap = {
+  "one": "60", "1": "60", "sixty": "60", "60": "60",
+  "ninety": "90", "90": "90", "thirty": "30", "30": "30"
+};
+const serviceRegex = /(?:a\s+)?(one|1|60|ninety|90|thirty|30|sixty)[-\s]?(minute|min|hour)?[\s-]+(deep tissue|relaxation|prenatal|massage|head.*?shoulder)/gi;
+let match, lastDuration = null, lastType = null;
+while ((match = serviceRegex.exec(transcript)) !== null) {
+  lastDuration = durationMap[match[1].toLowerCase()];
+  lastType = match[3].toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+if (lastDuration && lastType) {
+  service_name = `${lastDuration} Min ${lastType}`;
+}
+
+// === Date Parsing ===
+let appointment_date = null;
+let appointment_date_confirmed = null;
+let targetDate = null;
+let date_found = false;
+let date_debug_note = null;
+
+const weekdayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const monthNames = ["january", "february", "march", "april", "may", "june","july", "august", "september", "october", "november", "december"];
+
+// === Natural phrases like "two Fridays from now"
+const twoFridaysMatch = lowerTranscript.match(/\btwo\s+(?:fridays?|weeks?)\s+from\s+now\b/);
+if (twoFridaysMatch) {
+  const today = new Date(alaskaNow);
+  const currentDay = today.getDay(); // 0 = Sun, 5 = Fri
+  const currentSunday = new Date(today);
+  currentSunday.setDate(today.getDate() - currentDay);
+  const secondSunday = new Date(currentSunday);
+  secondSunday.setDate(currentSunday.getDate() + 14);
+  targetDate = new Date(secondSunday);
+  targetDate.setDate(secondSunday.getDate() + 5); // Friday
+  date_found = true;
+}
+
+// === Standard Relative Parsing
+if (!date_found) {
+  const fullDateMatch = transcript.match(new RegExp(`\\b(${monthNames.join("|")})\\s+(\\d{1,2})\\b`, "i"));
+  if (fullDateMatch) {
+    const monthIndex = monthNames.indexOf(fullDateMatch[1].toLowerCase());
+    const day = parseInt(fullDateMatch[2]);
+    targetDate = new Date(alaskaNow.getFullYear(), monthIndex, day);
+    if (targetDate < alaskaNow) targetDate.setFullYear(alaskaNow.getFullYear() + 1);
+    date_found = true;
+  } else if (/day after tomorrow/i.test(lowerTranscript)) {
+    targetDate = new Date(alaskaNow); targetDate.setDate(targetDate.getDate() + 2); date_found = true;
+  } else if (/tomorrow/i.test(lowerTranscript)) {
+    targetDate = new Date(alaskaNow); targetDate.setDate(targetDate.getDate() + 1); date_found = true;
+  } else {
+    const inDaysMatch = lowerTranscript.match(/\bin\s+(\d+)\s+days?\b/);
+    if (inDaysMatch) {
+      targetDate = new Date(alaskaNow);
+      targetDate.setDate(targetDate.getDate() + parseInt(inDaysMatch[1]));
+      date_found = true;
+    }
+  }
+}
+
+// === Time Parsing ===
+let appointment_time = null, hour = null, minute = 0, ampm = null;
+let time_found = false, time_debug_note = null;
+const timeRegex = /\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)/gi;
+let timeMatch;
+while ((match = timeRegex.exec(transcript)) !== null) timeMatch = match;
+if (timeMatch) {
+  hour = parseInt(timeMatch[1]);
+  minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+  ampm = timeMatch[3].toUpperCase().replace(/\./g, '');
+  appointment_time = `${hour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+  time_found = true;
+} else if (/(\d{1,2})\s*o['’`]clock/i.test(transcript)) {
+  hour = parseInt(RegExp.$1); ampm = "AM";
+  appointment_time = `${hour}:00 AM`; time_found = true;
+  time_debug_note = `⏰ Fallback: interpreted '${RegExp.$1} o’clock' as AM`;
+} else if (/noon/.test(lowerTranscript)) {
+  hour = 12; ampm = "PM"; appointment_time = "12:00 PM"; time_found = true;
+} else if (/afternoon/.test(lowerTranscript)) {
+  hour = 2; ampm = "PM"; appointment_time = "2:00 PM"; time_found = true;
+} else if (/evening/.test(lowerTranscript)) {
+  hour = 6; ampm = "PM"; appointment_time = "6:00 PM"; time_found = true;
+} else {
+  time_debug_note = "⚠️ No time found";
+}
+
+// === Final Date Formatting
+if (targetDate) {
+  appointment_date = `${targetDate.toLocaleString('en-US', { month: 'long' })} ${targetDate.getDate()}`;
+  appointment_date_confirmed = appointment_date;
+} else {
+  date_debug_note = "⚠️ No valid date found";
+}
+
+// === ISO Timestamp
+let appointment_iso = null;
+if (targetDate && typeof hour === 'number' && ampm) {
+  let hour24 = (ampm === "PM" && hour !== 12) ? hour + 12 : hour;
+  if (ampm === "AM" && hour === 12) hour24 = 0;
+  const localDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), hour24, minute);
+  const utcDate = new Date(localDate.getTime() + alaskaOffsetMs);
+  appointment_iso = utcDate.toISOString();
+}
+
+// === Fallback Suggestion
+let suggested_date = null, suggested_time = null, suggestion_message = null;
+if (!date_found || !time_found) {
+  const fallback = new Date(alaskaNow);
+  fallback.setDate(fallback.getDate() + 1);
+  suggested_date = `${fallback.toLocaleString('en-US', { month: 'long' })} ${fallback.getDate()}`;
+  suggested_time = "10:00 AM";
+  suggestion_message = `🧭 I couldn’t find a valid ${!date_found ? "date" : ""}${!date_found && !time_found ? " or " : ""}${!time_found ? "time" : ""}. Would you like to book for ${suggested_date} at ${suggested_time}?`;
+}
+
+// === Return
+return {
+  full_name,
+  phone,
+  email,
+  service_name,
+  appointment_date,
+  appointment_time,
+  appointment_iso,
+  appointment_date_confirmed,
+  date_found,
+  time_found,
+  date_debug_note,
+  time_debug_note,
+  suggested_date,
+  suggested_time,
+  suggestion_message
+};

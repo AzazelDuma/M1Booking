@@ -1,0 +1,49 @@
+// 📦 Step 5: Lookup Square Service Variation ID and Version based on normalized service name
+
+const serviceName = inputData.normalized_service || "";
+
+// 🧠 Lookup: Normalized name → { id, version }
+const serviceLookup = {
+  // Deep Tissue Massage
+  "60 Min Deep Tissue": { id: "NFYWO64ML5XZMS72IZWQ53GL", version: 1749440739063 },
+  "90 Min Deep Tissue": { id: "DNUM6DLZHYKH4WYOXGO7VO5O", version: 1748833784363 },
+
+  // Relaxation Massage
+  "60 Min Relaxation": { id: "ITNR5PJDATK5RAYHOGWTTBUK", version: 1748833949303 },
+  "90 Min Relaxation": { id: "A77RGCWSP3SRVG75JHAKSO5A", version: 1748833949303 },
+
+  // Prenatal Massage
+  "60 Min Prenatal": { id: "ZKIDKJMPNE3B6WILGDWLA2BS", version: 1748833886900 },
+  "90 Min Prenatal": { id: "NOQCC3PUCOWY32XMPJ7EDJLN", version: 1748833886900 },
+
+  // Couple’s Massage
+  "60 Min Couple’s Massage": { id: "MYJD4HNPFKZRTNVCHK6K35C36", version: 1748833755545 },
+  "90 Min Couple’s Massage": { id: "3JVPR3GH4EUEISZl5BI4UNPM", version: 1748833755545 },
+  "Prenatal Couple’s Massage": { id: "DJ6TEFPYXNOXUZX2C05K4JDG", version: 1748833755545 },
+
+  // Aroma Wrap Massage
+  "Aroma Wrap Massage": { id: "RZJWTKGPB04TDlHPSPB3MO2Y", version: 1748833707723 },
+
+  // Hot Stone Massage
+  "60 Min Hot Stone": { id: "ITR5DYR5BRDLFPXKFLDFIBV3", version: 1748833826709 },
+  "90 Min Hot Stone": { id: "WJD47JFG7JBLZlTRDO2KR4F5", version: 1748833826709 },
+
+  // Medical Massage
+  "Medical Massage": { id: "HUYNDWTCI52TEJV5XQKGTFIL", version: 1748833859926 },
+
+  // Donation
+  "Donation 10": { id: "F3S6SZQB67AL7OVA7C5NMWGS", version: 1691125571427 },
+  "Donation 20": { id: "7ZT4RMOFIAFDFJP2IRA32FY7", version: 1691125571427 },
+  "Donation 50": { id: "4UADUZVT4NIVC7DCKVHDMAO4", version: 1691125571427 },
+  "Donation 100": { id: "EDS74UO2ZUIP2SCKMZ7TPNFC", version: 1691125571427 },
+  "Donation Custom": { id: "66EQAULD6VNRA2QWHSAF6JZI", version: 1691125571427 }
+};
+
+// 🪞 Lookup the match
+const match = serviceLookup[serviceName] || { id: "", version: "" };
+
+// ✅ Output for later use
+return {
+  service_variation_id: match.id,
+  service_variation_version: match.version
+};

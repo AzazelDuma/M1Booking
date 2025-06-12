@@ -1,0 +1,23 @@
+// Input keys: formatted_datetime (ISO string), service_duration_ms (milliseconds)
+
+const startISO = inputData.formatted_datetime || ""; // ISO string from previous step
+const durationMs = parseInt(inputData.service_duration_ms, 10) || 3600000; // default 1 hour if missing or invalid
+
+// Parse start date from ISO string
+const startDate = new Date(startISO);
+
+if (isNaN(startDate.getTime())) {
+  // Invalid start date — return empty to avoid breaking downstream steps
+  return { start_at: null, end_at: null };
+}
+
+// Calculate end date by adding duration
+const endDate = new Date(startDate.getTime() + durationMs);
+
+// Add 15 minutes (900000 ms) wiggle room to end time
+const endDateWithBuffer = new Date(endDate.getTime() + 15 * 60 * 1000);
+
+return {
+  start_at: startDate.toISOString(),
+  end_at: endDateWithBuffer.toISOString()
+};
